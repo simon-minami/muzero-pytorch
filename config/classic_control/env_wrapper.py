@@ -26,10 +26,10 @@ class ClassicControlWrapper(Game):
         self.history.append(action)
         self.obs_history.append(obs)
 
-        return self.obs(len(self.rewards)), reward, done, info
+        return self.obs(len(self.rewards)), reward, terminal, truncated, info
 
     def reset(self, **kwargs):
-        obs = self.env.reset(**kwargs)
+        obs, info = self.env.reset(**kwargs)
 
         self.rewards = []
         self.history = []
@@ -38,7 +38,7 @@ class ClassicControlWrapper(Game):
         for _ in range(self.k):
             self.obs_history.append(obs)
 
-        return self.obs(0)
+        return self.obs(0), info
 
     def obs(self, i):
         frames = self.obs_history[i:i + self.k]

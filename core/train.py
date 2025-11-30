@@ -165,7 +165,7 @@ class DataWorker(object):
                 model.eval()
                 env = self.config.new_game()
 
-                obs = env.reset(seed=self.config.seed + self.rank)
+                obs, _ = env.reset(seed=self.config.seed + self.rank)
                 done = False
                 priorities = []
                 eps_reward, eps_steps, visit_entropies = 0, 0, 0
@@ -181,7 +181,8 @@ class DataWorker(object):
                                                exploration_fraction=self.config.root_exploration_fraction)
                     MCTS(self.config).run(root, env.action_history(), model)
                     action, visit_entropy = select_action(root, temperature=_temperature, deterministic=False)
-                    obs, reward, done, info = env.step(action.index)
+                    obs, reward, terminal, truncated, info = env.step(action.index)
+                    done = terminal or truncated
                     env.store_search_stats(root)
 
                     eps_reward += reward
@@ -296,6 +297,8 @@ def _train(config, shared_storage, replay_buffer, summary_writer):
         pass
 
     for step_count in range(config.training_steps):
+        if step_count % 100 == 0:
+            print(f'STEP COUNT: {step_count} out of {config.training_steps}')
         shared_storage.incr_counter.remote()
         lr = adjust_lr(config, optimizer, step_count)
 
@@ -341,10 +344,14 @@ def train(config, summary_writer=None):
                                         prob_alpha=config.priority_prob_alpha)
     workers = [DataWorker.remote(rank, config, storage, replay_buffer)
                for rank in range(0, config.num_actors)]
-    for worker in workers:
-        worker.run.remote()
-    workers += [_test.remote(config, storage)]
+    # for worker in workers:
+    #     worker.run.remote()
+    worker_refs = [worker.run.remote() for worker in workers]
+    # workers += [_test.remote(config, storage)]
+    worker_refs += [_test.remote(config, storage)]
+    
     _train(config, storage, replay_buffer, summary_writer)
-    ray.wait(workers, len(workers))
+    # ray.wait(workers, num_returns=len(workers))
+    ray.wait(worker_refs, num_returns=len(worker_refs))
 
     return config.get_uniform_network().set_weights(ray.get(storage.get_weights.remote()))

@@ -1,6 +1,6 @@
 from typing import Callable
 
-import gym
+import gymnasium as gym
 import torch
 
 from core.config import BaseMuZeroConfig, DiscreteSupport
@@ -11,11 +11,11 @@ from .model import MuZeroNet
 class ClassicControlConfig(BaseMuZeroConfig):
     def __init__(self):
         super(ClassicControlConfig, self).__init__(
-            training_steps=20000,
+            training_steps=5000,
             test_interval=100,
             test_episodes=5,
             checkpoint_interval=20,
-            max_moves=1000,
+            max_moves=200,  # cartpole v1 max is 500
             discount=0.997,
             dirichlet_alpha=0.25,
             num_simulations=50,
@@ -40,7 +40,7 @@ class ClassicControlConfig(BaseMuZeroConfig):
     def set_game(self, env_name, save_video=False, save_path=None, video_callable=None):
         self.env_name = env_name
         game = self.new_game()
-        self.obs_shape = game.reset().shape[0]
+        self.obs_shape = game.reset()[0].shape[0]
         self.action_space_size = game.action_space_size
 
     def get_uniform_network(self):
@@ -48,13 +48,13 @@ class ClassicControlConfig(BaseMuZeroConfig):
                          self.inverse_value_transform, self.inverse_reward_transform)
 
     def new_game(self, save_video=False, save_path=None, episode_trigger: Callable[[int], bool] = None, uid=None):
-        env = gym.make(self.env_name, new_step_api=True)
+        env = gym.make(self.env_name, render_mode="rgb_array")
         if save_video:
             assert save_path is not None, 'save_path cannot be None if saving video'
             from gym.wrappers import RecordVideo
             env = RecordVideo(env, video_folder=save_path, episode_trigger=episode_trigger,
                               name_prefix=f"rl-video-{uid}", new_step_api=True)
-        return ClassicControlWrapper(env, discount=self.discount, k=4)
+        return ClassicControlWrapper(env, discount=self.discount, k=1)  # k=1 no obs stacking for classic control
 
     def scalar_reward_loss(self, prediction, target):
         return -(torch.log_softmax(prediction, dim=1) * target).sum(1)
