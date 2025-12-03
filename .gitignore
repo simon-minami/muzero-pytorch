@@ -12,3 +12,6 @@ __pycache__/
 
 
 plan.txt
+debug.py
+*.png
+create_figs.py

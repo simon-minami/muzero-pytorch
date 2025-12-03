@@ -297,7 +297,7 @@ def _train(config, shared_storage, replay_buffer, summary_writer):
         pass
 
     for step_count in range(config.training_steps):
-        if step_count % 100 == 0:
+        if step_count % 10 == 0:
             print(f'STEP COUNT: {step_count} out of {config.training_steps}')
         shared_storage.incr_counter.remote()
         lr = adjust_lr(config, optimizer, step_count)

@@ -61,12 +61,40 @@ class ReplayBuffer(object):
             reward_batch.append(reward)
             value_batch.append(value)
             policy_batch.append(policy)
+        
+        # print(obs_batch[0].shape, action_batch[0].shape, reward_batch[0].shape, value_batch[0].shape, policy_batch[0].shape)
+        # honestly just need to check types of this stuff
+        # list of tensors? 
+        # np array of _
+        # what SHOULD it be.
+        # then figure out how to fix it.
+        #debug
+        #TODO something wrong with make target, value batch, getting mixed types somehow (tensor and float?)
+        #
+        # for i, v in enumerate(value_batch):
+        #     try:
+        #         print(i, np.array(v).shape)
+        #     except:
+        #         print(i, "ERROR", v)
+        
+        # print(len(value_batch), value_batch[0], type(value_batch[0]))
+        # each element in value_batch is list of tensors, should be length unroll steps +1
+        # value batch itself is a list, len 128 (batch size)
+        # in the end we want to return 128,6 tensor 
+        # i think we were seing mixed data types as in sometimes element in value batch contained tensor and float
+        # i think it makes more sense for value batch to be list of list of floats, not single item tensors
+        # for b, v in enumerate(value_batch):
+        #     try:
+        #         print(b, np.array(v).shape)
+        #     except:
+        #         print(b, "ERROR", v)
 
-        obs_batch = torch.tensor(obs_batch).float()
-        action_batch = torch.tensor(action_batch).long()
-        reward_batch = torch.tensor(reward_batch).float()
-        value_batch = torch.tensor(value_batch).float()
-        policy_batch = torch.tensor(policy_batch).float()
+        obs_batch = torch.tensor(np.array(obs_batch)).float()
+        action_batch = torch.tensor(np.array(action_batch)).long()
+        reward_batch = torch.tensor(np.array(reward_batch)).float()
+        value_batch = torch.tensor(np.array(value_batch)).float()
+        policy_batch = torch.tensor(np.array(policy_batch)).float()
+        # print(obs_batch.shape, action_batch.shape, reward_batch.shape, value_batch.shape, policy_batch.shape)
 
         return obs_batch, action_batch, reward_batch, value_batch, policy_batch, indices, weights
 

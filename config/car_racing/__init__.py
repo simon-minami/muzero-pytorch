@@ -4,33 +4,34 @@ import gymnasium as gym
 import torch
 
 from core.config import BaseMuZeroConfig, DiscreteSupport
-from .env_wrapper import ClassicControlWrapper
+from .env_wrapper import CarRacingWrapper
 from .model import MuZeroNet
 
-
-class ClassicControlConfig(BaseMuZeroConfig):
+#TODO need to be able to specify experiment name
+class CarRacingConfig(BaseMuZeroConfig):
     def __init__(self):
-        super(ClassicControlConfig, self).__init__(
-            training_steps=5000,
+        super().__init__(
+            training_steps=20000,
             test_interval=100,
-            test_episodes=5,
-            checkpoint_interval=20,  # update shared storage with most recent weights every {checkpoint_interval} training steps
-            max_moves=200,  # cartpole v1 max is 500
+            test_episodes=10,
+            checkpoint_interval=20,
+            max_moves=300, # keep low for now, might need to increase later
             discount=0.997,
             dirichlet_alpha=0.25,
             num_simulations=50,
             batch_size=128,
             td_steps=5,
-            lr_init=0.05,
+            lr_init=0.05,  # this might be too high
             lr_decay_rate=0.01,
             lr_decay_steps=10000,
-            window_size=1000,
+            window_size=1000,  # might be too high
             value_loss_coeff=1,
             value_support=DiscreteSupport(-20, 20),
-            reward_support=DiscreteSupport(-5, 5))
+            reward_support=DiscreteSupport(-5, 5)
+            )
 
     def visit_softmax_temperature_fn(self, num_moves, trained_steps):
-        if trained_steps < 0.5 * self.training_steps:
+        if trained_steps < 0.5 * self.training_steps:  # might need to increase the exploration
             return 1.0
         elif trained_steps < 0.75 * self.training_steps:
             return 0.5
@@ -48,13 +49,13 @@ class ClassicControlConfig(BaseMuZeroConfig):
                          self.inverse_value_transform, self.inverse_reward_transform)
 
     def new_game(self, save_video=False, save_path=None, episode_trigger: Callable[[int], bool] = None, uid=None):
-        env = gym.make(self.env_name, render_mode="rgb_array")
+        env = gym.make(self.env_name, render_mode="rgb_array", lap_complete_percent=0.95, domain_randomize=False, continuous=False)
         if save_video:
             assert save_path is not None, 'save_path cannot be None if saving video'
             from gymnasium.wrappers import RecordVideo
             env = RecordVideo(env, video_folder=save_path, episode_trigger=episode_trigger,
                               name_prefix=f"rl-video-{uid}")
-        return ClassicControlWrapper(env, discount=self.discount, k=1)  # k=1 no obs stacking for classic control
+        return CarRacingWrapper(env, discount=self.discount, k=1)  # k=1 might need to incorporate stacking with car racing
 
     def scalar_reward_loss(self, prediction, target):
         return -(torch.log_softmax(prediction, dim=1) * target).sum(1)
@@ -63,4 +64,4 @@ class ClassicControlConfig(BaseMuZeroConfig):
         return -(torch.log_softmax(prediction, dim=1) * target).sum(1)
 
 
-muzero_config = ClassicControlConfig()
+muzero_config = CarRacingConfig()

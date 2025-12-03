@@ -1,0 +1,34 @@
+just some notes on how this repo is set up
+
+
+basic explanation of how shared storage, worker learner interaction works in train.py
+
+train.py:
+
+we have an arbitrary number of workers/actors (might be best practice to align with number cpu cores)
+see class DataWorker and method run()
+workers job is to interact with env, choose actions by running mcts then saving episode to replay buffer
+we have a single learner, see function _train()
+learner job is to sample replay buffer, unroll models based on num_unroll_steps,
+calculate loss, update model weights and push weights to shared storage
+
+in train.py, workers and learner run in parallel
+before starting an episode, worker checks if current number of training steps is
+less than global config.training_steps
+if yes, it pulls most recent model weights from shared storage, runs through an episode, adds it to replay buffer
+
+learner waits until there is at least one episode in replay buffer. 
+then for step in config.training_steps:
+    increments the current training steps in shared storage (so that workers can check)
+    samples batch from replay buffer, unrolsl model, calculates loss, and updates model weights
+    pushes weights to shared storage every {checkpoint_interval} steps
+
+question: I ran muzero for 5000 training steps, 2 workers, replay buffer only got up to about 90 episodes
+when window size is set at much larger 1000. why is this?
+remember, workers and learner not running sequentially. so its NOT like we run one 
+episode, sample a batch to train, then repeat as 1 training step. Everything is run in parallel
+1 learner training step is a lot faster than 1 episode completion by a worker. 
+num_unroll_steps=5 is a lot less than max_moves, but also consider that for each action selection
+in episode we have to run mcts numerous times, where as learner basically just has to do model forward pass +backprop
+So, in the time it took for learner to complete 5000 training steps, individual
+worker only geting ~45 episodes done makes sense.

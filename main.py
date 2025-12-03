@@ -18,7 +18,7 @@ if __name__ == '__main__':
     parser.add_argument('--env', required=True, help='Name of the environment')
     parser.add_argument('--result_dir', default=os.path.join(os.getcwd(), 'results'),
                         help="Directory Path to store results (default: %(default)s)")
-    parser.add_argument('--case', required=True, choices=['atari', 'classic_control', 'box2d'],
+    parser.add_argument('--case', required=True, choices=['atari', 'classic_control', 'box2d', 'car_racing'],
                         help="It's used for switching between different domains(default: %(default)s)")
     parser.add_argument('--opr', required=True, choices=['train', 'test'])
     parser.add_argument('--no_cuda', action='store_true', default=False,
@@ -73,6 +73,8 @@ if __name__ == '__main__':
         from config.classic_control import muzero_config  # just using same config as classic_control for now
     elif args.case == 'classic_control':
         from config.classic_control import muzero_config
+    elif args.case == 'car_racing':
+        from config.car_racing import muzero_config
     else:
         raise Exception('Invalid --case option')
 
@@ -96,7 +98,7 @@ if __name__ == '__main__':
             model = muzero_config.get_uniform_network().to('cpu')
             model.load_state_dict(torch.load(muzero_config.model_path, map_location=torch.device('cpu')))
             test_score = test(muzero_config, model, args.test_episodes, device='cpu', render=args.render,
-                              save_video=True)
+                              save_video=False)
             logging.getLogger('test').info('Test Score: {}'.format(test_score))
         else:
             raise Exception('Please select a valid operation(--opr) to be performed')

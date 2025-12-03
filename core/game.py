@@ -110,6 +110,8 @@ class Game:
                 last_reward = 0
 
             if current_index < len(self.root_values):
+                # print(f'value: {type(value)}')
+                # print(f'reward: {type(last_reward)}')
                 target_values.append(value)
                 target_rewards.append(last_reward)
 
@@ -150,11 +152,15 @@ class Game:
         if idx is None:
             self.child_visits.append([root.children[a].visit_count / sum_visits if a in root.children else 0
                                       for a in action_space])
-            self.root_values.append(root.value())
+            self.root_values.append(root.value().item())  #store as float
         else:
             self.child_visits[idx] = [root.children[a].visit_count / sum_visits if a in root.children else 0
                                       for a in action_space]
-            self.root_values[idx] = root.value()
+            self.root_values[idx] = root.value().item()  # store as float
+            
+        # print(f'debug storing stats: {type(self.root_values[-1]), self.root_values[-1]}')
+        # print(f'debug storing stats: {type(self.child_visits[-1]), self.child_visits[-1]}')
+
 
     def to_play(self) -> Player:
         return Player()

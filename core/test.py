@@ -43,6 +43,7 @@ def test(config, model, episodes, device, render, save_video=False):
                                                         ep_data))
         jobs.append(p)
         p.start()
+        print(f'starting test episode {ep_i+1} out of {episodes}')
 
     for proc in jobs:
         proc.join()
